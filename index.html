@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Open CapIQ Workbench</title>
 <meta name="description" content="An open-source alternative stack to Capital IQ, with interactive MBA valuation tools: DCF, WACC, DuPont, comps and NPV/IRR.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f6f7f4;--card:#fff;--ink:#0d1b2a;--mute:#5b6773;--line:#e2e5e0;--acc:#0f766e;--acc2:#e8f3f1;--warn:#b45309}
 @media (prefers-color-scheme:dark){:root{--bg:#0b1218;--card:#121c26;--ink:#e8eef3;--mute:#93a1ad;--line:#22303c;--acc:#2dd4bf;--acc2:#12302f;--warn:#fbbf24}}
@@ -17,7 +19,7 @@ nav{max-width:1040px;margin:20px auto 0;padding:0 20px;display:flex;gap:6px;flex
 nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--mute);font:inherit;font-weight:500;padding:10px 12px;cursor:pointer}
 nav button[aria-selected=true]{color:var(--acc);border-color:var(--acc)}
 main{max-width:1040px;margin:0 auto;padding:24px 20px 60px}
-section{display:none}section.on{display:block}
+main section{display:none}main section.on{display:block}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}
 h2{font:600 20px Georgia,serif;margin:0 0 4px}
 .sub{color:var(--mute);margin:0 0 16px}
@@ -44,13 +46,32 @@ td.n,th.n{text-align:right}
 button.go{background:var(--acc);color:var(--bg);border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;margin-top:12px}
 footer{max-width:1040px;margin:0 auto;padding:0 20px 40px;color:var(--mute);font-size:13px}
 a{color:var(--acc)}
+html{scroll-behavior:smooth}
+.hero{position:relative;overflow:hidden;background:#1f2b27;color:#f6f5ef;min-height:max(700px,100vh)}
+#heroCv{position:absolute;inset:0;width:100%;height:100%}
+.heroTxt{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:clamp(56px,11vh,110px) 28px 0}
+.eyebrow{font:500 12px "IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;letter-spacing:.18em;text-transform:uppercase;color:#f7ef96}
+.hero h1{font:400 clamp(44px,8vw,92px)/.98 Newsreader,Georgia,serif;letter-spacing:-.02em;margin:14px 0;color:#f6f5ef}
+.hero h1 em{color:#f7ef96;font-style:italic}
+.hero p{color:rgba(246,245,239,.74);max-width:500px;margin:0 0 22px;font-size:16px}
+.cta{background:#f7ef96;color:#1f2b27;border:0;border-radius:99px;padding:11px 22px;font:600 14px/1 -apple-system,"Segoe UI",sans-serif;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.strip{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 40px;padding:14px 20px;background:#18221f;color:rgba(246,245,239,.7);font:12px "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.04em}
+.strip b{color:#f7ef96;font-size:15px;margin-right:4px}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);margin-top:0}
 </style>
 </head>
 <body>
-<header>
-  <h1>Open CapIQ Workbench</h1>
-  <p>What you can build instead of a Capital IQ seat, using free and open-source data and tooling. Then the core MBA valuation toolkit, running live in your browser.</p>
-</header>
+<section class="hero" id="hero">
+  <canvas id="heroCv" aria-hidden="true"></canvas>
+  <div class="heroTxt">
+    <div class="eyebrow">Fig. 00 &nbsp;/&nbsp; Open-source equity research</div>
+    <h1>Open <em>CapIQ</em><br>Workbench</h1>
+    <p>What you can build instead of a Capital IQ seat, using free and open data. Then the core MBA valuation toolkit, live in your browser.</p>
+    <button class="cta" id="cta">Open the workbench <span aria-hidden="true">↓</span></button>
+  </div>
+</section>
+<div class="strip"><div><b>5</b> open data tools mapped</div><div><b>5</b> MBA valuation methods</div><div><b>0</b> dependencies, runs in-browser</div></div>
 <nav role="tablist" id="tabs"></nav>
 <main>
 
@@ -150,7 +171,7 @@ TABS.forEach(([id,name])=>{const b=document.createElement("button");b.textConten
 function show(id){
   TABS.forEach(([t])=>$(t).classList.toggle("on",t===id));
   [...nav.children].forEach(b=>b.setAttribute("aria-selected",b.dataset.id===id));
-  history.replaceState(null,"","#"+id);
+  if(window._ready)history.replaceState(null,"","#"+id);
 }
 
 // ---- field builder
@@ -236,7 +257,98 @@ fields($("nIn"),[["cf","Cash flows",""],["r","Discount rate (%)",10]],runN);
 $("cf").value="-500, 120, 150, 180, 200, 220";
 runN();
 
-show(location.hash.slice(1) && $(location.hash.slice(1)) ? location.hash.slice(1) : "landscape");
+const initHash=location.hash.slice(1);
+show(initHash && $(initHash) ? initHash : "landscape");
+window._ready=true;
+$("cta").onclick=()=>nav.scrollIntoView({behavior:"smooth"});
+if(initHash)setTimeout(()=>nav.scrollIntoView(),0);
+
+// ---- Hero: blueprint canvas (iron-condor payoff, return distribution, floating numbers)
+(function(){
+  const hero=$("hero"),cv=$("heroCv"),ctx=cv.getContext("2d");
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const MONO='"IBM Plex Mono",ui-monospace,monospace';
+  const BR="247,239,150",PA="246,245,239";
+  const LABELS=["EV/EBITDA 11.7x","WACC 8.21%","β 1.10","NPV +141.5","ROE 13.3%","P/E 20.0x","FCF 108.0","IRR 19.4%","ERP 5.0%","TV 75.6%","EBITDA 120.0","Net debt 300","Ke 9.70%","Kd 4.50%","EV 1,992","g 2.5%","Δ −0.12","Θ +0.04","IV 24.3%","10-K","XBRL","CIK 0000320193"];
+  let W,H,dpr,fl=[],t0=performance.now();
+  function resize(){
+    dpr=Math.min(devicePixelRatio||1,2);W=hero.clientWidth;H=hero.clientHeight;
+    cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+    fl=Array.from({length:Math.max(8,Math.round(W/55))},(_,i)=>({x:Math.random()*W,y:Math.random()*H,v:10+Math.random()*20,a:.12+Math.random()*.22,b:Math.random()<.25,sz:10+Math.round(Math.random()*3),t:LABELS[i%LABELS.length]}));
+  }
+  // payoff of an iron condor, normalised: x in [0,1] -> y in [-0.9, 0.55]
+  const K=[.22,.38,.62,.78],LO=-.9,HI=.55;
+  const pay=u=>u<K[0]?LO:u<K[1]?LO+(HI-LO)*(u-K[0])/(K[1]-K[0]):u<K[2]?HI:u<K[3]?HI-(HI-LO)*(u-K[2])/(K[3]-K[2]):LO;
+  const pdf=u=>Math.exp(-0.5*Math.pow((u-.5)/.14,2));
+  const ease=p=>1-Math.pow(1-p,3);
+  function dots(fn,box,spacing,prog,r,col,a){
+    // walk the polyline and drop a dot every `spacing` px, up to prog of total length
+    const pts=[];for(let i=0;i<=480;i++){const u=i/480;pts.push([box.x+u*box.w,fn(u)])}
+    let total=0;for(let i=1;i<pts.length;i++)total+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+    const lim=total*prog;let acc=0,next=0,last=null;
+    for(let i=1;i<pts.length&&acc<=lim;i++){
+      const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+      while(next<=acc+d&&next<=lim){const f=d?(next-acc)/d:0;last=[pts[i-1][0]+(pts[i][0]-pts[i-1][0])*f,pts[i-1][1]+(pts[i][1]-pts[i-1][1])*f];
+        ctx.fillStyle=`rgba(${col},${a})`;ctx.beginPath();ctx.arc(last[0],last[1],r,0,6.283);ctx.fill();next+=spacing}
+      acc+=d;
+    }
+    return last;
+  }
+  function txt(s,x,y,a,al="left",sz=10){ctx.font=`${sz}px ${MONO}`;ctx.textAlign=al;ctx.fillStyle=`rgba(${PA},${a})`;ctx.fillText(s,x,y)}
+  function frame(now){
+    requestAnimationFrame(frame);
+    if(hero.getBoundingClientRect().bottom<0)return;
+    const el=reduce?1e5:now-t0;
+    ctx.clearRect(0,0,W,H);
+    // blueprint grid
+    const g=28;ctx.lineWidth=1;
+    for(let x=0;x<=W;x+=g){ctx.strokeStyle=`rgba(${PA},${(x/g)%4===0?.09:.04})`;ctx.beginPath();ctx.moveTo(x+.5,0);ctx.lineTo(x+.5,H);ctx.stroke()}
+    for(let y=0;y<=H;y+=g){ctx.strokeStyle=`rgba(${PA},${(y/g)%4===0?.09:.04})`;ctx.beginPath();ctx.moveTo(0,y+.5);ctx.lineTo(W,y+.5);ctx.stroke()}
+    // floating numbers
+    fl.forEach(f=>{
+      if(!reduce){f.y-=f.v/60;if(f.y<-20){f.y=H+20;f.x=Math.random()*W}}
+      ctx.font=`${f.sz}px ${MONO}`;ctx.textAlign="left";ctx.fillStyle=`rgba(${f.b?BR:PA},${f.a})`;ctx.fillText(f.t,f.x,f.y);
+    });
+    // plot box
+    const bx=W*.07,bw=W*.86,by=H*.56,bh=H*.32,zero=by+bh*.55,sc=bh*.5;
+    const Y=u=>zero-pay(u)*sc, X=u=>bx+u*bw;
+    // strikes (dashed) + labels
+    ctx.setLineDash([2,5]);ctx.lineWidth=1;
+    K.forEach((k,i)=>{ctx.strokeStyle=`rgba(${PA},.28)`;ctx.beginPath();ctx.moveTo(X(k),by-10);ctx.lineTo(X(k),by+bh+10);ctx.stroke();txt("K"+(i+1),X(k),by+bh+26,.55,"center")});
+    ctx.setLineDash([]);
+    // zero axis
+    ctx.strokeStyle=`rgba(${PA},.35)`;ctx.beginPath();ctx.moveTo(bx,zero+.5);ctx.lineTo(bx+bw,zero+.5);ctx.stroke();
+    txt("0",bx-8,zero+3,.5,"right");
+    txt("PAYOFF AT EXPIRY",bx,by-16,.5);txt("UNDERLYING PRICE →",bx+bw,by+bh+26,.4,"right");
+    // return distribution (paper dots, baseline at bottom of plot)
+    const dp=ease(Math.max(0,Math.min(1,(el-900)/2600)));
+    const base=by+bh;dots(u=>base-pdf(u)*bh*.8,{x:bx,w:bw},7,dp,1.2,PA,.5);
+    if(dp>.95)txt("P(S_T)",X(.5)-bw*.2,base-bh*.8*.3,.5,"right");
+    // condor payoff (brass dots)
+    const p=ease(Math.min(1,el/3000));
+    const tip=dots(u=>Y(u),{x:bx,w:bw},8,p,1.9,BR,.95);
+    if(tip&&p<1){const r=4+Math.sin(now/120)*1.5;ctx.strokeStyle=`rgba(${BR},.6)`;ctx.beginPath();ctx.arc(tip[0],tip[1],r+3,0,6.283);ctx.stroke()}
+    // annotations once drawn
+    if(p>.98){
+      const a=Math.min(1,(el-3000)/700);
+      txt("MAX PROFIT",X(.5),Y(.5)-18,.8*a,"center",11);
+      txt("MAX LOSS",X(.07),Y(.05)-12,.6*a,"center");txt("MAX LOSS",X(.93),Y(.95)-12,.6*a,"center");
+      // dimension line across the profit zone
+      const dy=Y(.5)-34;ctx.strokeStyle=`rgba(${BR},${.5*a})`;ctx.beginPath();ctx.moveTo(X(K[1]),dy);ctx.lineTo(X(K[2]),dy);
+      ctx.moveTo(X(K[1]),dy-5);ctx.lineTo(X(K[1]),dy+5);ctx.moveTo(X(K[2]),dy-5);ctx.lineTo(X(K[2]),dy+5);ctx.stroke();
+      ctx.font=`10px ${MONO}`;ctx.textAlign="center";ctx.fillStyle=`rgba(${BR},${.9*a})`;ctx.fillText("PROFIT ZONE",X(.5),dy-8);
+      // breakeven markers
+      [K[0]+(K[1]-K[0])*(0-LO)/(HI-LO),K[3]-(K[3]-K[2])*(0-LO)/(HI-LO)].forEach((u,i)=>{
+        ctx.strokeStyle=`rgba(${BR},${a})`;ctx.beginPath();ctx.arc(X(u),zero,5,0,6.283);ctx.stroke();txt("BE"+(i+1),X(u),zero+(i?-12:20),.7*a,"center")});
+    }
+    // corner brackets + figure caption
+    ctx.strokeStyle=`rgba(${PA},.5)`;ctx.lineWidth=1.2;const m=22,L=26;
+    [[m,m,1,1],[W-m,m,-1,1],[m,H-m,1,-1],[W-m,H-m,-1,-1]].forEach(([x,y,sx,sy])=>{ctx.beginPath();ctx.moveTo(x,y+sy*L);ctx.lineTo(x,y);ctx.lineTo(x+sx*L,y);ctx.stroke()});
+    ctx.lineWidth=1;ctx.beginPath();ctx.arc(W-m-60,m+44,14,0,6.283);ctx.moveTo(W-m-80,m+44);ctx.lineTo(W-m-40,m+44);ctx.moveTo(W-m-60,m+24);ctx.lineTo(W-m-60,m+64);ctx.stroke();
+    txt("FIG. 01 — IRON CONDOR PAYOFF · OVERLAID RETURN DISTRIBUTION",m+4,H-m-12,.45);
+  }
+  resize();addEventListener("resize",resize);requestAnimationFrame(frame);
+})();
 </script>
 </body>
 </html>
